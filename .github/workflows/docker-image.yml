@@ -1,0 +1,38 @@
+name: Export BeeCount image
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Pull official image
+        run: |
+          docker pull --platform linux/amd64 sunxiao0721/beecount-cloud:latest
+          docker image inspect sunxiao0721/beecount-cloud:latest \
+            --format '{{json .RepoDigests}}' > image-digest.txt
+
+      - name: Export image
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker save sunxiao0721/beecount-cloud:latest | gzip > beecount-image.tar.gz
+          sha256sum beecount-image.tar.gz > beecount-image.tar.gz.sha256
+
+      - name: Upload download package
+        uses: actions/upload-artifact@v4
+        with:
+          name: beecount-image
+          path: |
+            beecount-image.tar.gz
+            beecount-image.tar.gz.sha256
+            image-digest.txt
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 0
